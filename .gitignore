@@ -20,6 +20,6 @@
 # Go workspace file
 go.work
 
-apf
-apf-agent
+/apf
+/apf-agent
 bootstrap/agent.tar
