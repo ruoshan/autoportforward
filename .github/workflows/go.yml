@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  create:
+    tags:
+      - v.*
+  pull_request:
+    branches: 
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - name: Build
+      run: GOOS=darwin ./build.sh
+
+    - name: Test
+      run: go test -v ./...
+      
+  release:
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+
+    - id: get_version
+      uses: battila7/get-version-action@v2
+
+    - name: Install upx
+      run: |
+        curl -O -L https://github.com/upx/upx/releases/download/v3.96/upx-3.96-amd64_linux.tar.xz
+        tar jxf upx-3.96-amd64_linux.tar.xz
+        mv upx-3.96-amd64_linux/upx /usr/local/bin/
+        rm -rf upx-*
+
+    - name: Build for x64 linux
+      run: |
+        GOARCH=amd64 GOOS=linux ./build.sh
+        mv apf apf-linux-x64
+
+    - name: Build for MacOS
+      run: |
+        GOARCH=amd64 GOOS=darwin ./build.sh
+        mv apf apf-mac
+      
+    - name: Release binary
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          apf-linux-x64
+          apf-mac
+        name: ${{ steps.get_version.outputs.version }}
