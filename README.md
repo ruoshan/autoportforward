@@ -8,7 +8,7 @@ I often find myself forgot to add `-p` option when testing a image with docker, 
 expose some other ports. Now I don't need to worry about that, I just run the following commands:
 
 ```
-$ docker run -d --name ch clickhouse-server:latest
+$ docker run -d --name ch clickhouse/clickhouse-server:latest
 
 $ apf ch
 LISTENING PORTS: [9005 ==> 9005, 9009 ==> 9009, 8123 ==> 8123, 9000 ==> 9000, 9004 ==> 9004]
