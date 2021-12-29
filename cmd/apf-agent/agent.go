@@ -4,11 +4,11 @@ import (
 	"flag"
 	"syscall"
 
-	"github.com/ruoshan/bportforward/logger"
-	"github.com/ruoshan/bportforward/manager"
-	"github.com/ruoshan/bportforward/mux"
-	"github.com/ruoshan/bportforward/portscan"
-	"github.com/ruoshan/bportforward/proxy"
+	"github.com/ruoshan/autoportforward/logger"
+	"github.com/ruoshan/autoportforward/manager"
+	"github.com/ruoshan/autoportforward/mux"
+	"github.com/ruoshan/autoportforward/portscan"
+	"github.com/ruoshan/autoportforward/proxy"
 )
 
 // NB: agent CAN NOT use stdout as log output! stdout has been taken by the StdioMuxClient.

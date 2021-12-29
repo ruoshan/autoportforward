@@ -10,7 +10,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/ruoshan/bportforward/mux"
+	"github.com/ruoshan/autoportforward/mux"
 )
 
 type ProxyListener struct {

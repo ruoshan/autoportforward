@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"strings"
 
-	"github.com/ruoshan/bportforward/bootstrap"
-	"github.com/ruoshan/bportforward/logger"
-	"github.com/ruoshan/bportforward/manager"
-	"github.com/ruoshan/bportforward/mux"
-	"github.com/ruoshan/bportforward/proxy"
+	"github.com/ruoshan/autoportforward/bootstrap"
+	"github.com/ruoshan/autoportforward/logger"
+	"github.com/ruoshan/autoportforward/manager"
+	"github.com/ruoshan/autoportforward/mux"
+	"github.com/ruoshan/autoportforward/proxy"
 )
 
 var log = logger.GetNullLogger()

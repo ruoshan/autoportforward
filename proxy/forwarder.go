@@ -8,7 +8,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/ruoshan/bportforward/mux"
+	"github.com/ruoshan/autoportforward/mux"
 )
 
 type ProxyForwarder struct {

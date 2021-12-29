@@ -1,4 +1,4 @@
-module github.com/ruoshan/bportforward
+module github.com/ruoshan/autoportforward
 
 go 1.17
 
