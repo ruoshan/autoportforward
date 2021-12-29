@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/ruoshan/bportforward/bootstrap"
 	"github.com/ruoshan/bportforward/logger"
@@ -55,12 +56,18 @@ func main() {
 		panic(fmt.Sprintf("Failed to bootstrap: %s", msg))
 	}
 
-	var ms *mux.CmdPipeMuxServer
+	var cmd []string
 	if *isK8s {
-		// Fixme
+		splits := strings.SplitN(containerId, "/", 2)
+		cmd = []string{"kubectl", "exec", "-i", "-n", splits[0], splits[1], "/apf-agent"}
 	} else {
-		ms = mux.NewCmdPipeMuxServer("docker", "exec", "-i", containerId, "/apf-agent", "-d")
+		cmd = []string{"docker", "exec", "-i", containerId, "/apf-agent"}
 	}
+	if *dbg {
+		cmd = append(cmd, "-d")
+	}
+
+	ms := mux.NewCmdPipeMuxServer(cmd[0], cmd[1:]...)
 	if ms == nil {
 		panic("Failed to create mux server")
 	}
