@@ -1,7 +1,7 @@
-// Manager uses two dedicated bi-directional streams for communicating between local and remote agent.
+// Manager uses two dedicated bidirectional streams for communication between local and remote agent.
 // Here are the commands:
 //  - PING: expected PONG response
-//  - FWD {rport}: create a new listener on the receving side, pick a random port on the receiving side
+//  - FWD {rport}: create a new listener on the receiving side
 //  - DEL {rport}: delete the listener on the receiving side
 package manager
 

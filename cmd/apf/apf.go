@@ -28,7 +28,7 @@ func sigHandler(fn func()) {
 
 var isK8s = flag.Bool("k", false, "proxy for Kubernetes pod")
 var dbg = flag.Bool("d", false, "log debug info to /tmp/autoportforward.log")
-var reverse = flag.String("r", "", "comma seperated port list. eg. 8080,9090\nlistening ports in container and forward them back")
+var reverse = flag.String("r", "", "comma-separated port list. eg. 8080,9090\nlistening ports in container and forward them back")
 
 func init() {
 	flag.Usage = func() {
