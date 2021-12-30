@@ -19,38 +19,49 @@ import (
 
 // All commands are three-letter string over the wire
 const CMD_LEN = 3
+
+// Req
 const (
 	PING = "png"
 	FWD  = "fwd"
 	DEL  = "del"
-	ACK  = "ack"
+)
+
+// Resp
+const (
+	LSN = "lsn"
+	ACK = "ack"
 )
 
 type Manager struct {
-	receiver      io.ReadWriteCloser
-	sender        io.ReadWriteCloser
-	cmdCh         chan string
-	shutdownHook  func()
-	once          sync.Once
-	logger        *log.Logger
-	localPortMap  map[uint16]uint16 // forward target port => local listener port
-	remotePortMap map[uint16]bool   // up-to-date remote listening ports
-	fwdCallback   func(port uint16) (finalPort uint16, err error)
-	delCallback   func(port uint16) error
+	receiver     io.ReadWriteCloser
+	sender       io.ReadWriteCloser
+	cmdCh        chan string
+	lsnCh        chan []uint16
+	shutdownHook func()
+	once         sync.Once
+	logger       *log.Logger
+	localPortMap map[uint16]uint16 // target port => local listener port
+	peerPortMap  map[uint16]uint16 // peer's listening ports: target port => peer listener port
+	fwdCallback  func(port uint16) (finalPort uint16, err error)
+	delCallback  func(port uint16) error
+	dumpCallback func(localPortMap, peerPortMap map[uint16]uint16)
 }
 
 func NewManager(receiver io.ReadWriteCloser, sender io.ReadWriteCloser, logger *log.Logger, shutdownHook func()) *Manager {
 	return &Manager{
-		receiver:      receiver,
-		sender:        sender,
-		cmdCh:         make(chan string),
-		shutdownHook:  shutdownHook,
-		once:          sync.Once{},
-		logger:        logger,
-		localPortMap:  make(map[uint16]uint16),
-		remotePortMap: make(map[uint16]bool),
-		fwdCallback:   nil,
-		delCallback:   nil,
+		receiver:     receiver,
+		sender:       sender,
+		cmdCh:        make(chan string),
+		lsnCh:        make(chan []uint16),
+		shutdownHook: shutdownHook,
+		once:         sync.Once{},
+		logger:       logger,
+		localPortMap: make(map[uint16]uint16),
+		peerPortMap:  make(map[uint16]uint16),
+		fwdCallback:  nil,
+		delCallback:  nil,
+		dumpCallback: nil,
 	}
 }
 
@@ -73,8 +84,11 @@ func (m *Manager) receivingLoop() {
 			// noop
 		case FWD:
 			ports := m.decodeSlice(m.receiver)
-			m.fwdPorts(ports)
+			lports := m.fwdPorts(ports)
+			m.receiver.Write([]byte(LSN))
+			m.receiver.Write(m.encodeSlice(lports))
 			m.DumpPorts()
+			continue
 		case DEL:
 			ports := m.decodeSlice(m.receiver)
 			m.delPorts(ports)
@@ -86,7 +100,8 @@ func (m *Manager) receivingLoop() {
 	}
 }
 
-func (m *Manager) fwdPorts(ports []uint16) {
+func (m *Manager) fwdPorts(ports []uint16) (lports []uint16) {
+	lports = make([]uint16, 0, 10)
 	for _, p := range ports {
 		if _, ok := m.localPortMap[p]; ok {
 			continue
@@ -96,7 +111,9 @@ func (m *Manager) fwdPorts(ports []uint16) {
 			lport, _ := m.fwdCallback(p)
 			m.localPortMap[p] = lport
 		}
+		lports = append(lports, m.localPortMap[p])
 	}
+	return lports
 }
 
 func (m *Manager) delPorts(ports []uint16) {
@@ -125,7 +142,12 @@ func (m *Manager) sendingLoop() {
 			m.logger.Println("Error resp")
 			m.Shutdown()
 		}
-		if string(buf) != ACK {
+		switch string(buf) {
+		case LSN:
+			m.lsnCh <- m.decodeSlice(m.sender)
+		case ACK:
+			// OK
+		default:
 			m.logger.Println("Unexpected resp")
 			m.Shutdown()
 		}
@@ -161,41 +183,57 @@ func (m *Manager) decodeSlice(r io.Reader) []uint16 {
 	return ports
 }
 
-// Update takes a full list of ports that're listening.
-// This method is called by portscanner.
-func (m *Manager) UpdatePorts(ports []uint16) {
+// UpdatePeerPorts takes a full list of ports that're going to be listened on the peer side.
+// This will also command the peer to remove oudated ports from listening.
+func (m *Manager) UpdatePeerPorts(ports []uint16) {
 	fwdList := make([]uint16, 0, 10)
 	delList := make([]uint16, 0, 10)
-	newPortMap := make(map[uint16]bool)
+	newPortMap := make(map[uint16]uint16)
 	for _, p := range ports {
-		newPortMap[p] = true
-		if !m.remotePortMap[p] {
+		if _, ok := m.peerPortMap[p]; !ok {
 			// new ports to fwd
 			fwdList = append(fwdList, p)
+			newPortMap[p] = 0 // the peer's listening port is not determined until the FWD cmd is confirmed
+		} else {
+			newPortMap[p] = m.peerPortMap[p]
 		}
 	}
-	for p := range m.remotePortMap {
-		if !newPortMap[p] {
+	for p := range m.peerPortMap {
+		if _, ok := newPortMap[p]; !ok {
 			// old ports to del
 			delList = append(delList, p)
 		}
 	}
-	m.remotePortMap = newPortMap
+	m.peerPortMap = newPortMap
+
 	if len(fwdList) > 0 {
 		m.cmdCh <- FWD + string(m.encodeSlice(fwdList))
+		peerListenPorts := <-m.lsnCh
+		if len(fwdList) != len(peerListenPorts) {
+			panic("Expected FWD length equal to LSN")
+		}
+		for i, p := range fwdList {
+			m.peerPortMap[p] = peerListenPorts[i]
+		}
 	}
+
 	if len(delList) > 0 {
 		m.cmdCh <- DEL + string(m.encodeSlice(delList))
 	}
+
+	if len(delList)+len(fwdList) > 0 {
+		m.DumpPorts()
+	}
+}
+
+func (m *Manager) SetDumpCallback(dumpCallback func(local, peer map[uint16]uint16)) {
+	m.dumpCallback = dumpCallback
 }
 
 func (m *Manager) DumpPorts() {
-	lst := make([]string, 0, 10)
-	for targetPort, listenPort := range m.localPortMap {
-		lst = append(lst, fmt.Sprintf("%d ==> %d", listenPort, targetPort))
+	if m.dumpCallback != nil {
+		m.dumpCallback(m.localPortMap, m.peerPortMap)
 	}
-	fmt.Fprintf(os.Stderr, "\r%s", strings.Repeat(" ", 100))
-	fmt.Fprintf(os.Stderr, "\rLISTENING PORTS: [%s]", strings.Join(lst, ", "))
 }
 
 func (m *Manager) SetCallbacks(fwdCallback func(port uint16) (finalPort uint16, err error), delCallback func(port uint16) error) {
@@ -211,4 +249,16 @@ func (m *Manager) Shutdown() {
 		close(m.cmdCh)
 		m.shutdownHook()
 	})
+}
+
+func DumpToStderr(localPortMap, peerPortMap map[uint16]uint16) {
+	lst := make([]string, 0, 10)
+	for targetPort, listenPort := range localPortMap {
+		lst = append(lst, fmt.Sprintf("%d ==> %d", listenPort, targetPort))
+	}
+	for targetPort, listenPort := range peerPortMap {
+		lst = append(lst, fmt.Sprintf("%d <== %d", targetPort, listenPort))
+	}
+	fmt.Fprintf(os.Stderr, "\r%s", strings.Repeat(" ", 100))
+	fmt.Fprintf(os.Stderr, "\rForwarding: [%s]", strings.Join(lst, ", "))
 }

@@ -34,22 +34,28 @@ func main() {
 		mc.Close()
 	})
 
-	// Keep scanning listening ports
-	go func() {
-		portscanner := &portscan.TCPListenerScanner{}
-		portsCh := make(chan []uint16)
-		go portscanner.Run(portsCh)
-		for ports := range portsCh {
-			mgr.UpdatePorts(ports)
-		}
-	}()
-
 	pl := proxy.NewProxyListener(mc, log)
 	if pl == nil {
 		panic("Failed to create proxy server")
 	}
 	mgr.SetCallbacks(pl.NewListener, pl.CloseListener)
 	mgr.Run()
+
+	// Keep scanning listening ports
+	go func() {
+		portscanner := &portscan.TCPListenerScanner{}
+		portsCh := make(chan []uint16)
+		go portscanner.Run(portsCh)
+		for ports := range portsCh {
+			filtered := make([]uint16, 0, 10)
+			for _, p := range ports {
+				if !pl.PortInUsed(p) {
+					filtered = append(filtered, p)
+				}
+			}
+			mgr.UpdatePeerPorts(filtered)
+		}
+	}()
 
 	pf := proxy.NewProxyForwarder(mc, log)
 	if pf == nil {

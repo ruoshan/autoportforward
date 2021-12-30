@@ -48,7 +48,7 @@ func (p *ProxyListener) NewListener(rport uint16) (lport uint16, err error) {
 func (p *ProxyListener) newListener(lport, rport uint16) (finalPort uint16, err error) {
 	p.logger.Printf("New listener: %d", lport)
 	laddr, _ := net.ResolveTCPAddr("tcp", fmt.Sprintf(":%d", lport))
-	l, err := net.ListenTCP("tcp", laddr)
+	l, err := net.ListenTCP("tcp4", laddr)
 	if err != nil {
 		p.logger.Printf("Failed to listen: %s", err)
 		return 0, err
@@ -65,6 +65,11 @@ func (p *ProxyListener) newListener(lport, rport uint16) (finalPort uint16, err 
 
 	go p.listenLoop(l, rport)
 	return lport, nil
+}
+
+func (p *ProxyListener) PortInUsed(lport uint16) bool {
+	_, ok := p.listeners[lport]
+	return ok
 }
 
 func (p *ProxyListener) CloseListener(rport uint16) error {
