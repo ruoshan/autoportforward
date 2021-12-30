@@ -8,10 +8,14 @@ I often find myself forgot to add `-p` option when testing a image with docker, 
 expose some other ports. Now I don't need to worry about that, I just run the following commands:
 
 ```
-$ docker run -d --name ch clickhouse/clickhouse-server:latest
+$ docker run -d --name redis redis
 
-$ apf ch
-LISTENING PORTS: [9005 ==> 9005, 9009 ==> 9009, 8123 ==> 8123, 9000 ==> 9000, 9004 ==> 9004]
+$ apf redis
+
+*  ==> : Forwarding local listening ports to (==>) remote ports
+*  <== : Forwarding to local ports from (<==) remote listening ports (use -r option)
+
+Forwarding: [6379 ==> 6379]
 ```
 
 apf will update the port list on the fly. So if you login to the container and start other
@@ -23,7 +27,7 @@ For kubernetes:
 $ kubectl run --image redis redis
 
 $ apf -k default/redis
-LISTENING PORTS: [6379 ==> 6379]
+Forwarding: [6379 ==> 6379]
 ```
 
 ## Installation
@@ -34,13 +38,13 @@ local docker daemon / k8s cluster or remote.
 You can either download the binary from the release artifacts or build it yourself.
 
 ```
-# MacOS (intel)
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.2/apf-mac
+# MacOS (Intel)
+curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.3/apf-mac
 chmod +x apf-mac
 mv apf-mac /usr/local/bin/apf
 
 # Linux
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.2/apf-linux-x64
+curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.3/apf-linux-x64
 chmod +x apf-mac
 mv apf-mac /usr/local/bin/apf
 ```
@@ -48,6 +52,8 @@ mv apf-mac /usr/local/bin/apf
 To manually build it, clone the repo and run the `build.sh` script.
 
 ## Usage
+
+### Expose all the listening ports in the container back to the local machine
 
 ```
 # Docker
@@ -57,6 +63,12 @@ apf {container ID / name}
 apf -k {namespace}/{pod name}
 ```
 
-## Status
+### Also expose local ports (8080,9090) to the container
 
-- Supporting for reverse proxy is in progress: Create listening ports in container and forward them back to local machine
+```
+# Docker
+apf -r 8080,9090  {container ID / name}
+
+# Kubernetes
+apf -r 8080,9090 -k {namespace}/{pod name}
+```
