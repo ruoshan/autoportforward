@@ -1,33 +1,11 @@
-name: CI
+name: Release
 
 on:
-  push:
-    branches:
-      - main
   create:
     tags:
       - v.*
-  pull_request:
-    branches: 
-      - main
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.17
-
-    - name: Build
-      run: GOOS=darwin ./build.sh
-
-    - name: Test
-      run: go test -v ./...
-      
   release:
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-latest
@@ -58,7 +36,12 @@ jobs:
       run: |
         GOARCH=amd64 GOOS=darwin ./build.sh
         mv apf apf-mac
-      
+
+    - name: Build for MacOS (arm64)
+      run: |
+        GOARCH=arm64 GOOS=darwin ./build.sh
+        mv apf apf-mac-arm64
+
     - name: Release binary
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,4 +50,5 @@ jobs:
         files: |
           apf-linux-x64
           apf-mac
+          apf-mac-arm64
         name: ${{ steps.get_version.outputs.version }}
