@@ -45,8 +45,8 @@ mv apf-mac /usr/local/bin/apf
 
 # Linux
 curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.3/apf-linux-x64
-chmod +x apf-mac
-mv apf-mac /usr/local/bin/apf
+chmod +x apf-linux-x64
+mv apf-linux-x64 /usr/local/bin/apf
 ```
 
 To manually build it, clone the repo and run the `build.sh` script.
