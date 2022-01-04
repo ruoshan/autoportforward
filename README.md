@@ -40,17 +40,17 @@ You can either download the binary from the release artifacts or build it yourse
 
 ```
 # MacOS (Intel)
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-mac
+curl -L -O https://github.com/ruoshan/autoportforward/releases/latest/download/apf-mac
 chmod +x apf-mac
 mv apf-mac /usr/local/bin/apf
 
 # MacOS (ARM)
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-mac-arm64
+curl -L -O https://github.com/ruoshan/autoportforward/releases/latest/download/apf-mac-arm64
 chmod +x apf-mac-arm64
 mv apf-mac-arm64 /usr/local/bin/apf
 
 # Linux
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-linux-x64
+curl -L -O https://github.com/ruoshan/autoportforward/releases/latest/download/apf-linux-x64
 chmod +x apf-linux-x64
 mv apf-linux-x64 /usr/local/bin/apf
 ```
