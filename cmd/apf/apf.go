@@ -15,6 +15,8 @@ import (
 	"github.com/ruoshan/autoportforward/proxy"
 )
 
+var version string = "dev"
+
 var log = logger.GetNullLogger()
 
 func sigHandler(fn func()) {
@@ -37,6 +39,7 @@ func init() {
     * apf -k {namespace}/{pod ID}
 Flags:`)
 		flag.PrintDefaults()
+		fmt.Printf("Version: %s\n", version)
 	}
 }
 

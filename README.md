@@ -2,9 +2,10 @@
 
 A handy tool to automatically set up proxies that expose the remote container's listening ports
 back to the local machine. Just like `kubectl portforward` or `docker run -p LOCAL:REMOTE`, but
-automatically discover and update the ports to be forwarded on the fly.
+automatically discover and update the ports to be forwarded on the fly. `apf` can create listening
+ports in the container and forward them back as well.
 
-I often find myself forgot to add `-p` option when testing a image with docker, or missed to
+I often find myself forgetting to add `-p` option when testing a docker image or missing to
 expose some other ports. Now I don't need to worry about that, I just run the following commands:
 
 ```
@@ -18,7 +19,7 @@ $ apf redis
 Forwarding: [6379 ==> 6379]
 ```
 
-apf will update the port list on the fly. So if you login to the container and start other
+`apf` will update the port list on the fly. So if you login to the container and start other
 server listening on different ports, it will dynamically update the local listeners.
 
 For kubernetes:
@@ -32,19 +33,24 @@ Forwarding: [6379 ==> 6379]
 
 ## Installation
 
-First of all, apf requires a working `docker` / `kubectl` client setup, the client can conect to either
+First of all, `apf` requires a working `docker` / `kubectl` client setup, the client can connect to either
 local docker daemon / k8s cluster or remote.
 
 You can either download the binary from the release artifacts or build it yourself.
 
 ```
 # MacOS (Intel)
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.3/apf-mac
+curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-mac
 chmod +x apf-mac
 mv apf-mac /usr/local/bin/apf
 
+# MacOS (ARM)
+curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-mac-arm64
+chmod +x apf-mac-arm64
+mv apf-mac-arm64 /usr/local/bin/apf
+
 # Linux
-curl -L -O https://github.com/ruoshan/autoportforward/releases/download/v0.0.3/apf-linux-x64
+curl -L -O https://github.com/ruoshan/autoportforward/releases/download/latest/apf-linux-x64
 chmod +x apf-linux-x64
 mv apf-linux-x64 /usr/local/bin/apf
 ```
