@@ -14,5 +14,4 @@ fi
 mv agent.tar bootstrap
 rm -f apf-agent
 
-go build ./cmd/apf
-
+go build -ldflags="-X main.version=${VERSION:-dev}" ./cmd/apf
