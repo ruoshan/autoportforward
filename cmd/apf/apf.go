@@ -29,18 +29,28 @@ func sigHandler(fn func()) {
 }
 
 var isK8s = flag.Bool("k", false, "proxy for Kubernetes pod")
+var isPodman = flag.Bool("p", false, "proxy for Podman container")
 var dbg = flag.Bool("d", false, "log debug info to /tmp/autoportforward.log")
-var reverse = flag.String("r", "", "comma-separated port list. eg. 8080,9090\nlistening ports in container and forward them back")
+var reverse = flag.String("r", "", "comma-separated port list. eg. 8080,9090\nlistening ports in the container and forwarding them back")
 
 func init() {
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), `Usage:
-    * apf {container ID}
+    * apf {docker container ID / name}
     * apf -k {namespace}/{pod ID}
+    * apf -p {podman container ID / name}
 Flags:`)
 		flag.PrintDefaults()
 		fmt.Printf("Version: %s\n", version)
 	}
+}
+
+func printPrelude() {
+	fmt.Print(`
+*  ==> : Forwarding local listening ports to (==>) remote ports
+*  <== : Forwarding to local ports from (<==) remote listening ports (use -r option)
+
+`)
 }
 
 func main() {
@@ -55,18 +65,29 @@ func main() {
 		log = logger.GetLogger()
 	}
 
-	// Bootstrap: docker cp the tar archive
-	msg, err := bootstrap.Bootstrap(*isK8s, containerId)
+	var rt bootstrap.RTType = bootstrap.DOCKER
+	if *isK8s {
+		rt = bootstrap.KUBERNETES
+	}
+	if *isPodman {
+		rt = bootstrap.PODMAN
+	}
+
+	// Bootstrap: copy the agent(tar archive) into the container
+	msg, err := bootstrap.Bootstrap(rt, containerId)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to bootstrap: %s", msg))
 	}
 
 	var cmd []string
-	if *isK8s {
+	switch rt {
+	case bootstrap.DOCKER:
+		cmd = []string{"docker", "exec", "-i", containerId, "/apf-agent"}
+	case bootstrap.KUBERNETES:
 		splits := strings.SplitN(containerId, "/", 2)
 		cmd = []string{"kubectl", "exec", "-i", "-n", splits[0], splits[1], "/apf-agent"}
-	} else {
-		cmd = []string{"docker", "exec", "-i", containerId, "/apf-agent"}
+	case bootstrap.PODMAN:
+		cmd = []string{"podman", "exec", "-i", containerId, "/apf-agent"}
 	}
 	if *dbg {
 		cmd = append(cmd, "-d")
@@ -117,12 +138,4 @@ func main() {
 		panic("Failed to create proxy forwarder")
 	}
 	pf.Start()
-}
-
-func printPrelude() {
-	fmt.Print(`
-*  ==> : Forwarding local listening ports to (==>) remote ports
-*  <== : Forwarding to local ports from (<==) remote listening ports (use -r option)
-
-`)
 }

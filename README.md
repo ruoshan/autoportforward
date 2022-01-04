@@ -22,12 +22,21 @@ Forwarding: [6379 ==> 6379]
 `apf` will update the port list on the fly. So if you login to the container and start other
 server listening on different ports, it will dynamically update the local listeners.
 
-For kubernetes:
+For Kubernetes:
 
 ```
 $ kubectl run --image redis redis
 
 $ apf -k default/redis
+Forwarding: [6379 ==> 6379]
+```
+
+For Podman:
+
+```
+$ podman run --name redis docker.io/library/redis:latest
+
+$ apf -p redis
 Forwarding: [6379 ==> 6379]
 ```
 
@@ -67,6 +76,9 @@ apf {container ID / name}
 
 # Kubernetes
 apf -k {namespace}/{pod name}
+
+# Podman
+apf -p {podman container ID / name}
 ```
 
 ### Also expose local ports (8080,9090) to the container
@@ -77,4 +89,13 @@ apf -r 8080,9090  {container ID / name}
 
 # Kubernetes
 apf -r 8080,9090 -k {namespace}/{pod name}
+
+# Podman
+apf -r 8080,9090 -p {podman container ID / name}
 ```
+
+
+## Limitations
+
+- Currently, `apf` only supports linux container(x64 arch)
+- For Kubernetes, the container must have `tar` installed
