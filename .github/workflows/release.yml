@@ -33,22 +33,16 @@ jobs:
         run: |
           GOARCH=amd64 GOOS=linux ./build.sh
           mv apf apf-linux-x64
-        env:
-          VERSION: ${{env.VERSION}}
 
       - name: Build for MacOS
         run: |
           GOARCH=amd64 GOOS=darwin ./build.sh
           mv apf apf-mac
-        env:
-          VERSION: ${{env.VERSION}}
 
       - name: Build for MacOS (arm64)
         run: |
           GOARCH=arm64 GOOS=darwin ./build.sh
           mv apf apf-mac-arm64
-        env:
-          VERSION: ${{env.VERSION}}
 
       - name: Release binary
         env:
