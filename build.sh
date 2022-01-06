@@ -2,7 +2,9 @@
 
 set -xe
 
-GOOS=linux go build --ldflags "-s" ./cmd/apf-agent
+# Build a static agent binary
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build --ldflags "-s" ./cmd/apf-agent
+
 if command -v upx; then
     upx apf-agent
 fi
