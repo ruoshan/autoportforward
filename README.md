@@ -99,3 +99,12 @@ apf -r 8080,9090 -p {podman container ID / name}
 
 - Currently, `apf` only supports linux container(x64 arch)
 - For Kubernetes, the container must have `tar` installed
+
+## Tips
+
+1. apf does not come with shell completion, but here is what I do to make it more handy:
+
+```
+# `brew install fzf`
+alias ap='docker ps | grep -v "^CONTAINER ID" | fzf | awk "{print \$1}" | xargs -n 1 apf'
+```
