@@ -113,9 +113,6 @@ func main() {
 	if ms == nil {
 		panic("Failed to create mux server")
 	}
-	sigHandler(func() {
-		ms.Shutdown()
-	})
 
 	printPrelude()
 
@@ -124,7 +121,10 @@ func main() {
 	mgrReceivingStream, _ := ms.Accept()
 	mgrSendingStream, _ := ms.Accept()
 	mgr := manager.NewManager(mgrReceivingStream, mgrSendingStream, log, func() {
-		ms.Close()
+		ms.Shutdown()
+	})
+	sigHandler(func() {
+		mgr.Shutdown()
 	})
 
 	log.Println("Starting proxy listener")
@@ -144,7 +144,9 @@ func main() {
 	if pf == nil {
 		panic("Failed to create proxy forwarder")
 	}
-	pf.Start()
+	go pf.Start()
 
+	log.Println("Waiting")
+	mgr.Wait()
 	log.Println("Byebye")
 }

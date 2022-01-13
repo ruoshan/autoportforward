@@ -38,8 +38,10 @@ type Manager struct {
 	sender       io.ReadWriteCloser
 	cmdCh        chan string
 	lsnCh        chan []uint16
+	shutdownCh   chan struct{}
 	shutdownHook func()
 	once         sync.Once
+	wg           *sync.WaitGroup
 	logger       *log.Logger
 	localPortMap map[uint16]uint16 // target port => local listener port
 	peerPortMap  map[uint16]uint16 // peer's listening ports: target port => peer listener port
@@ -54,8 +56,10 @@ func NewManager(receiver io.ReadWriteCloser, sender io.ReadWriteCloser, logger *
 		sender:       sender,
 		cmdCh:        make(chan string),
 		lsnCh:        make(chan []uint16),
+		shutdownCh:   make(chan struct{}),
 		shutdownHook: shutdownHook,
 		once:         sync.Once{},
+		wg:           &sync.WaitGroup{},
 		logger:       logger,
 		localPortMap: make(map[uint16]uint16),
 		peerPortMap:  make(map[uint16]uint16),
@@ -66,6 +70,7 @@ func NewManager(receiver io.ReadWriteCloser, sender io.ReadWriteCloser, logger *
 }
 
 func (m *Manager) Run() {
+	m.wg.Add(2) // Only wait for the two loops
 	go m.receivingLoop()
 	go m.sendingLoop()
 	go m.healthcheck()
@@ -74,11 +79,13 @@ func (m *Manager) Run() {
 func (m *Manager) receivingLoop() {
 	defer func() {
 		m.logger.Println("Stop receiving")
+		m.wg.Done()
 	}()
 	buf := make([]byte, CMD_LEN)
 	for {
 		_, err := io.ReadFull(m.receiver, buf)
 		if err != nil {
+			m.logger.Println("Read EOF")
 			m.Shutdown()
 			return
 		}
@@ -97,7 +104,7 @@ func (m *Manager) receivingLoop() {
 			m.delPorts(ports)
 			m.DumpPorts()
 		default:
-			panic(fmt.Sprintf("unknown manager command: %v", buf))
+			panic(fmt.Sprintf("Unknown manager command: %v", buf))
 		}
 		m.receiver.Write([]byte(ACK))
 	}
@@ -131,40 +138,42 @@ func (m *Manager) delPorts(ports []uint16) {
 func (m *Manager) sendingLoop() {
 	defer func() {
 		m.logger.Println("Stop sending")
+		m.wg.Done()
 	}()
 	buf := make([]byte, CMD_LEN)
-	for cmd := range m.cmdCh {
-		if cmd == "" {
+	for {
+		select {
+		case <-m.shutdownCh:
 			return
-		}
-		m.sender.Write([]byte(cmd))
-		timer := time.AfterFunc(5*time.Second, func() {
-			m.logger.Println("Timeout!")
-			m.Shutdown()
-		})
-		_, err := io.ReadFull(m.sender, buf)
-		timer.Stop()
-		if err != nil {
-			m.logger.Println("Error resp")
-			m.Shutdown()
-		}
-		switch string(buf) {
-		case LSN:
-			m.lsnCh <- m.decodeSlice(m.sender)
-		case ACK:
-			// OK
-		default:
-			m.logger.Println("Unexpected resp")
-			m.Shutdown()
+		case cmd := <-m.cmdCh:
+			m.sender.Write([]byte(cmd))
+			timer := time.AfterFunc(5*time.Second, func() {
+				m.logger.Println("Timeout!")
+				m.Shutdown()
+			})
+			_, err := io.ReadFull(m.sender, buf)
+			timer.Stop()
+			if err != nil {
+				m.logger.Println("Error resp")
+				m.Shutdown()
+				return
+			}
+			switch string(buf) {
+			case LSN:
+				m.lsnCh <- m.decodeSlice(m.sender)
+			case ACK:
+				// OK
+			default:
+				m.logger.Println("Unexpected resp")
+				m.Shutdown()
+				return
+			}
 		}
 	}
 }
 
 // yamux has its own healthcheck implemented, this is kinda redundant.
 func (m *Manager) healthcheck() {
-	defer func() {
-		m.logger.Println("Stop healthcheck")
-	}()
 	tick := time.NewTicker(5 * time.Second)
 	for range tick.C {
 		m.cmdCh <- PING
@@ -255,9 +264,13 @@ func (m *Manager) Shutdown() {
 		m.logger.Println("Shutting down")
 		m.receiver.Close()
 		m.sender.Close()
-		close(m.cmdCh)
+		close(m.shutdownCh)
 		m.shutdownHook()
 	})
+}
+
+func (m *Manager) Wait() {
+	m.wg.Wait()
 }
 
 func DumpToStderr(localPortMap, peerPortMap map[uint16]uint16) {

@@ -64,7 +64,9 @@ func main() {
 	if pf == nil {
 		panic("Failed to create proxy forwarder")
 	}
-	pf.Start()
+	go pf.Start()
+	log.Println("Waiting")
+	mgr.Wait()
 	log.Println("Agent stops")
 	syscall.Unlink("/apf-agent")
 }
