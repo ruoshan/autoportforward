@@ -134,6 +134,7 @@ func main() {
 	}
 	mgr.SetCallbacks(pl.NewListener, pl.CloseListener)
 	mgr.SetDumpCallback(manager.DumpToStderr)
+	mgr.DumpPorts()
 	mgr.Run()
 	if len(reversePorts) > 0 {
 		mgr.UpdatePeerPorts(reversePorts)
