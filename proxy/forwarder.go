@@ -36,6 +36,7 @@ func (p *ProxyForwarder) Start() {
 func (p *ProxyForwarder) acceptStream() (stream io.ReadWriteCloser, rport uint16) {
 	stream, err := p.muxServer.Accept()
 	if err != nil {
+		p.logger.Printf("Failed to accept new stream: %s", err)
 		return nil, 0
 	}
 

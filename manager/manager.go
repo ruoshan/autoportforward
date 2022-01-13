@@ -72,6 +72,9 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) receivingLoop() {
+	defer func() {
+		m.logger.Println("Stop receiving")
+	}()
 	buf := make([]byte, CMD_LEN)
 	for {
 		_, err := io.ReadFull(m.receiver, buf)
@@ -126,6 +129,9 @@ func (m *Manager) delPorts(ports []uint16) {
 }
 
 func (m *Manager) sendingLoop() {
+	defer func() {
+		m.logger.Println("Stop sending")
+	}()
 	buf := make([]byte, CMD_LEN)
 	for cmd := range m.cmdCh {
 		if cmd == "" {
@@ -156,6 +162,9 @@ func (m *Manager) sendingLoop() {
 
 // yamux has its own healthcheck implemented, this is kinda redundant.
 func (m *Manager) healthcheck() {
+	defer func() {
+		m.logger.Println("Stop healthcheck")
+	}()
 	tick := time.NewTicker(5 * time.Second)
 	for range tick.C {
 		m.cmdCh <- PING
