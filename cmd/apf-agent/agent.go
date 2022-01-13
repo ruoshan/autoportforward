@@ -34,6 +34,7 @@ func main() {
 		mc.Close()
 	})
 
+	log.Println("Starting proxy listener")
 	pl := proxy.NewProxyListener(mc, log)
 	if pl == nil {
 		panic("Failed to create proxy server")
@@ -43,6 +44,7 @@ func main() {
 
 	// Keep scanning listening ports
 	go func() {
+		log.Println("Starting portscanner")
 		portscanner := &portscan.TCPListenerScanner{}
 		portsCh := make(chan []uint16)
 		go portscanner.Run(portsCh)
@@ -57,6 +59,7 @@ func main() {
 		}
 	}()
 
+	log.Println("Starting proxy forwarder")
 	pf := proxy.NewProxyForwarder(mc, log)
 	if pf == nil {
 		panic("Failed to create proxy forwarder")

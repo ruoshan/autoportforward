@@ -31,7 +31,7 @@ func NewProxyListener(m mux.MuxClient, logger *log.Logger) *ProxyListener {
 
 // Create new listener that would forward to the remote port (rport).
 // The local port will be the same as rport if possible, otherwise:
-// 	 - if rport < 1024, lport == rport + 10000
+//   - if rport < 1024, lport == rport + 10000
 //   - fallback: a random port is chosen for lport
 func (p *ProxyListener) NewListener(rport uint16) (lport uint16, err error) {
 	lport = rport
