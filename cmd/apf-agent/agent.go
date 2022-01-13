@@ -31,7 +31,7 @@ func main() {
 	mgrSendingStream, _ := mc.Connect()
 	mgrReceivingStream, _ := mc.Connect()
 	mgr := manager.NewManager(mgrReceivingStream, mgrSendingStream, log, func() {
-		mc.Close()
+		mc.Shutdown()
 	})
 
 	log.Println("Starting proxy listener")

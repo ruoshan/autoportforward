@@ -77,7 +77,7 @@ func (ym *YAMux) Connect() (io.ReadWriteCloser, error) {
 }
 
 func (ym *YAMux) Shutdown() error {
-	return nil
+	return ym.Close()
 }
 
 func NewStdioMuxClient() *YAMux {
@@ -107,8 +107,4 @@ func NewCmdPipeMuxServer(name string, args ...string) *CmdPipeMuxServer {
 	ym := NewYAMux(stdout, stdin, false)
 	c.YAMux = ym
 	return c
-}
-
-func (c *CmdPipeMuxServer) Shutdown() error {
-	return c.cmd.Wait()
 }
