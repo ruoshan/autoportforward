@@ -16,6 +16,6 @@ else
     tar -c --group=root:0 --owner=root:0 -f agent.tar apf-agent
 fi
 mv agent.tar bootstrap
-# rm -f apf-agent
+rm -f apf-agent
 
 go build -ldflags="-X main.version=${VERSION:-dev}" ./cmd/apf
