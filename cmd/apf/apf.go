@@ -118,8 +118,14 @@ func main() {
 
 	log.Println("Starting manager")
 	// Open two streams for manager. NB: the order of Accept() is different from Connect() in the remote agent
-	mgrReceivingStream, _ := ms.Accept()
-	mgrSendingStream, _ := ms.Accept()
+	mgrReceivingStream, err := ms.Accept()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to establish manager stream: %s", err))
+	}
+	mgrSendingStream, err := ms.Accept()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to establish manager stream: %s", err))
+	}
 	mgr := manager.NewManager(mgrReceivingStream, mgrSendingStream, log, func() {
 		ms.Shutdown()
 	})
