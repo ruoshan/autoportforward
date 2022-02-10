@@ -97,7 +97,7 @@ apf -r 8080,9090 -p {podman container ID / name}
 
 ## Limitations
 
-- Currently, `apf` only supports linux container(x64 arch).
+- Currently, `apf` only supports containers of the same CPU arch of your host machine. For other arch, you can do a custom build by tweaking the `build.sh` script.
 - For Kubernetes, the container must have `tar` installed.
 - If the container is run with readonly rootfs, apf won't work. (apf needs to copy a guest agent into the container)
 
