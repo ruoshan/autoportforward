@@ -36,7 +36,7 @@ func NewProxyListener(m mux.MuxClient, logger *log.Logger) *ProxyListener {
 func (p *ProxyListener) NewListener(rport uint16) (lport uint16, err error) {
 	lport = rport
 	if rport < 1024 {
-		lport = rport + 10000
+		lport = rport + 5000
 	}
 	lport, err = p.newListener(lport, rport)
 	if errors.Is(err, syscall.EADDRINUSE) {
