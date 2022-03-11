@@ -1,6 +1,7 @@
 package portscan
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -16,5 +17,33 @@ func Test_parseProcNetTcp(t *testing.T) {
 	ports := parseProcNetTcp(f)
 	if ports[0] != 9004 || ports[2] != 80 {
 		t.FailNow()
+	}
+}
+
+func Test_mergePorts(t *testing.T) {
+	type args struct {
+		portsV4 []uint16
+		portsV6 []uint16
+	}
+	tests := []struct {
+		name string
+		args args
+		want []uint16
+	}{
+		{
+			name: "Remove duplicated port",
+			args: args{
+				portsV4: []uint16{123, 124, 125},
+				portsV6: []uint16{111, 123, 125, 126},
+			},
+			want: []uint16{111, 123, 124, 125, 126},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := mergePorts(tt.args.portsV4, tt.args.portsV6); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("mergePorts() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
