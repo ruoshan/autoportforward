@@ -19,7 +19,10 @@ import (
 //   2: 00000000:0050 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 86197589 1 0000000000000000 100 0 0 10 0
 // What we want to get is the `local_address` of those line that has `st` == `0A`.
 // the `0A` is the TCP_LISTEN state of a TCP socket, see `/include/net/tcp_states.h` in kernel source.
-const PROC_TCP = "/proc/net/tcp"
+const (
+	PROC_TCP  = "/proc/net/tcp"
+	PROC_TCP6 = "/proc/net/tcp6"
+)
 
 type TCPListenerScanner struct{}
 
@@ -59,10 +62,28 @@ func portsChanged(a, b []uint16) bool {
 	return false
 }
 
+func mergePorts(portsV4, portsV6 []uint16) []uint16 {
+	merged := append(portsV4, portsV6...)
+	sort.SliceStable(merged, func(i, j int) bool {
+		return merged[i] < merged[j]
+	})
+	dedup := make([]uint16, 0, 5)
+	for i, v := range merged {
+		if i == len(merged)-1 || v != merged[i+1] {
+			dedup = append(dedup, v)
+		}
+	}
+	return dedup
+}
+
 func (t *TCPListenerScanner) Parse() []uint16 {
 	f, _ := os.Open(PROC_TCP)
 	defer f.Close()
-	return parseProcNetTcp(f)
+	f2, _ := os.Open(PROC_TCP6)
+	defer f2.Close()
+	ports := parseProcNetTcp(f)
+	ports2 := parseProcNetTcp(f2)
+	return mergePorts(ports, ports2)
 }
 
 func (t *TCPListenerScanner) Run(emit chan<- []uint16) {
