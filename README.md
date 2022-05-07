@@ -22,7 +22,7 @@ Forwarding: [6379 ==> 6379]
 `apf` will update the port list on the fly. So if you login to the container and start other
 server listening on different ports, it will dynamically update the local listeners.
 
-For Kubernetes:
+For Kubernetes (hey, if you haven't heard of [telepresence](telepresence.io) , please give it a try, it's way cooler than this project.):
 
 ```
 $ kubectl run --image redis redis
